@@ -1,82 +1,131 @@
 # Medical Image Processing:
-## Enhancement, Filtering, Restoration, and Segmentation
 
+## Enhancement, Filtering, Restoration, and Segmentation
 
 ## Overview
 
-This repository presents an implementation-based study of classical medical image processing techniques using Python.
+This repository presents an implementation-based study of classical
+medical image processing techniques using Python.
 
-The project covers fundamental concepts from Digital Image Processing, including image enhancement, frequency-domain analysis, image restoration, and segmentation.
+The project focuses on fundamental digital image processing methods
+including image enhancement, spatial and frequency domain processing,
+image restoration, and image segmentation.
 
+The implementations are based on concepts from the book:
 
-## Implemented Methods
-
-
-## Chapter 3 — Image Enhancement and Spatial Processing
-
-Implemented techniques:
-
-- Image Negative Transformation
-- Logarithmic Transformation
-- Gamma Transformation
-- Bit-Plane Slicing
-- High Bit-Plane Reconstruction
-- Histogram Equalization
-- Median Filtering
-
-
-## Chapter 4 — Frequency Domain Processing
-
-Implemented techniques:
-
-- Fourier Spectrum Analysis
-- Ideal Low-Pass Filtering
-- Gaussian Low-Pass Filtering
-- Ideal High-Pass Filtering
-- Butterworth High-Pass Filtering
-- Homomorphic Filtering
-
-
-## Chapter 5 — Image Restoration
-
-Implemented techniques:
-
-- Atmospheric Turbulence Degradation Model
-- Linear Motion Blur Degradation Model
-
-
-## Chapter 10 — Image Segmentation
-
-Implemented techniques:
-
-- Global Thresholding
-- Basic Global Thresholding
-- Otsu Thresholding
-- Canny Edge Detection
-
-
-## Technologies
-
-- Python
-- OpenCV
-- NumPy
-- Matplotlib
-
-
-## Results
-
-Generated outputs are provided in the `results` directory.
-
-Example categories:
-
-- Enhancement results
-- Frequency filtering results
-- Restoration simulations
-- Segmentation outputs
-
-
-## Reference
-
+**Digital Image Processing**\
 Rafael C. Gonzalez and Richard E. Woods
 
-Digital Image Processing
+------------------------------------------------------------------------
+
+# Implemented Methods
+
+## Chapter 3 --- Image Enhancement and Spatial Processing
+
+Implemented techniques:
+
+-   Image Negative Transformation
+-   Logarithmic Transformation
+-   Gamma Transformation
+-   Bit-Plane Slicing
+-   High Bit-Plane Reconstruction
+-   Histogram Equalization
+-   Median Filtering
+
+## Chapter 4 --- Frequency Domain Processing
+
+Implemented techniques:
+
+-   Fourier Spectrum Analysis
+-   Ideal Low-Pass Filtering
+-   Gaussian Low-Pass Filtering
+-   Ideal High-Pass Filtering
+-   Butterworth High-Pass Filtering
+-   Homomorphic Filtering
+
+## Chapter 5 --- Image Restoration
+
+Implemented techniques:
+
+-   Atmospheric Turbulence Degradation Model
+-   Linear Motion Blur Degradation Model
+
+## Chapter 10 --- Image Segmentation
+
+Implemented techniques:
+
+-   Global Thresholding
+-   Basic Global Thresholding
+-   Otsu Thresholding
+-   Canny Edge Detection
+
+------------------------------------------------------------------------
+
+# Technologies
+
+Programming Language:
+
+-   Python
+
+Libraries:
+
+-   OpenCV
+-   NumPy
+-   Matplotlib
+
+------------------------------------------------------------------------
+
+# Installation
+
+``` bash
+git clone https://github.com/milad-rezaei-arjmand/Medical-Image-Processing.git
+pip install -r requirements.txt
+```
+
+------------------------------------------------------------------------
+
+# Usage
+
+Each implementation can be executed independently.
+
+Example:
+
+``` bash
+python src/chapter10_segmentation/otsu_thresholding.py
+```
+
+Generated outputs are saved inside the `results` directory.
+
+------------------------------------------------------------------------
+
+# Results
+
+The repository includes generated visualization results for:
+
+-   Image enhancement
+-   Frequency filtering
+-   Restoration simulations
+-   Segmentation methods
+
+------------------------------------------------------------------------
+
+# Reference
+
+Gonzalez, R. C., & Woods, R. E.
+
+**Digital Image Processing**
+
+Pearson Education.
+
+------------------------------------------------------------------------
+
+# Author
+
+**Milad Rezaei Arjmand**
+
+Research Interests:
+
+-   Medical Artificial Intelligence
+-   Biomedical Image Processing
+-   Signal and Image Processing
+-   Deep Learning
