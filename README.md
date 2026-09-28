@@ -1,6 +1,6 @@
 # Medical Image Processing
 
-## Classical Enhancement, Frequency Filtering, Restoration, and Segmentation in Python
+## Classical Enhancement, Frequency Filtering, Degradation Modeling, Segmentation, and Edge Detection in Python
 
 This repository is an implementation-oriented study of classical digital image-processing methods with applications to biomedical and medical imaging.
 
@@ -31,7 +31,7 @@ The code is intended for education, experimentation, and portfolio demonstration
 - Butterworth high-pass filtering
 - Homomorphic filtering
 
-### Chapter 5 — Degradation / Restoration Models
+### Chapter 5 — Degradation Models
 
 - Atmospheric-turbulence degradation model
 - Linear motion-blur degradation model
