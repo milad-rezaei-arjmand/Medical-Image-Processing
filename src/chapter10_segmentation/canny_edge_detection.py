@@ -1,36 +1,124 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
-import matplotlib.pyplot as plt
+import numpy as np
 
-img = cv2.imread("Fig1026(a)(headCT-Vandy).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-# طبق خود شکل:
-# sigma = 2
-# mask size = 13x13
-# T_L = 0.05 , T_H = 0.15  --> در بازه 0 تا 255
-blurred = cv2.GaussianBlur(img, (13, 13), 2)
 
-low_thresh = int(0.05 * 255)
-high_thresh = int(0.15 * 255)
+def canny_edge_detection(
+    image,
+    sigma=2.0,
+    kernel_size=13,
+    low_threshold=0.05,
+    high_threshold=0.15,
+):
+    sigma = float(sigma)
+    kernel_size = int(kernel_size)
+    low_threshold = float(low_threshold)
+    high_threshold = float(high_threshold)
 
-result = cv2.Canny(blurred, low_thresh, high_thresh, L2gradient=True)
+    if sigma <= 0:
+        raise ValueError("sigma must be greater than zero.")
 
-plt.figure(figsize=(10, 5))
+    if kernel_size <= 1 or kernel_size % 2 == 0:
+        raise ValueError(
+            "kernel_size must be an odd integer greater than 1."
+        )
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 10.26(a) Original")
-plt.axis("off")
+    if not (
+        0 <= low_threshold < high_threshold <= 1
+    ):
+        raise ValueError(
+            "Threshold fractions must satisfy "
+            "0 <= low < high <= 1."
+        )
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 10.26(d) Canny")
-plt.axis("off")
+    blurred = cv2.GaussianBlur(
+        image,
+        (kernel_size, kernel_size),
+        sigma,
+    )
 
-plt.tight_layout()
-plt.savefig("Fig1026_result.png", dpi=300, bbox_inches="tight")
-plt.close()
+    low_value = int(
+        round(low_threshold * 255)
+    )
+    high_value = int(
+        round(high_threshold * 255)
+    )
 
-print("Done. Output saved as Fig1026_result.png")
+    return cv2.Canny(
+        blurred,
+        low_value,
+        high_value,
+        L2gradient=True,
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Apply Gaussian smoothing followed by Canny edge detection."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--sigma", type=float, default=2.0)
+    parser.add_argument(
+        "--kernel-size",
+        type=int,
+        default=13,
+    )
+    parser.add_argument(
+        "--low-threshold",
+        type=float,
+        default=0.05,
+        help="Fraction of the 8-bit range.",
+    )
+    parser.add_argument(
+        "--high-threshold",
+        type=float,
+        default=0.15,
+        help="Fraction of the 8-bit range.",
+    )
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter10",
+                "canny_edge_detection.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
+
+    image = load_grayscale(args.input)
+    result = canny_edge_detection(
+        image,
+        sigma=args.sigma,
+        kernel_size=args.kernel_size,
+        low_threshold=args.low_threshold,
+        high_threshold=args.high_threshold,
+    )
+
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        "Canny Edge Detection",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

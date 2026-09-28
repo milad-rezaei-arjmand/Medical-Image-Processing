@@ -1,56 +1,94 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-img = cv2.imread("Fig0525(a)(aerial_view_no_turb).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-# Fig 5.25(b): severe turbulence
-k = 0.0025
 
-img_float = img.astype(np.float32)
+def atmospheric_turbulence_degradation(
+    image,
+    k=0.0025,
+):
+    k = float(k)
 
-rows, cols = img.shape
-crow, ccol = rows // 2, cols // 2
+    if k < 0:
+        raise ValueError("k must be non-negative.")
 
-u = np.arange(rows) - crow
-v = np.arange(cols) - ccol
-V, U = np.meshgrid(v, u)
+    image_float = image.astype(np.float32)
 
-D2 = U**2 + V**2
+    rows, cols = image.shape
+    center_row = rows // 2
+    center_col = cols // 2
 
-# Atmospheric turbulence degradation function:
-# H(u,v) = exp[-k * (u^2 + v^2)^(5/6)]
-H = np.exp(-k * (D2 ** (5 / 6)))
+    u = np.arange(rows) - center_row
+    v = np.arange(cols) - center_col
+    V, U = np.meshgrid(v, u)
 
-F = np.fft.fft2(img_float)
-F_shift = np.fft.fftshift(F)
+    distance_squared = U**2 + V**2
 
-G_shift = F_shift * H
+    transfer = np.exp(
+        -k * (distance_squared ** (5.0 / 6.0))
+    )
 
-G = np.fft.ifftshift(G_shift)
-result = np.fft.ifft2(G)
-result = np.real(result)
+    spectrum = np.fft.fftshift(
+        np.fft.fft2(image_float)
+    )
+    degraded = spectrum * transfer
 
-result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX)
-result = result.astype(np.uint8)
+    result = np.real(
+        np.fft.ifft2(
+            np.fft.ifftshift(degraded)
+        )
+    )
 
-plt.figure(figsize=(10, 5))
+    return normalize_to_uint8(result)
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 5.25(a) Original")
-plt.axis("off")
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 5.25(b) k = 0.0025")
-plt.axis("off")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Simulate atmospheric-turbulence degradation."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--k", type=float, default=0.0025)
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter5",
+                "atmospheric_turbulence.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
 
-plt.tight_layout()
-plt.savefig("Fig0525_result.png", dpi=300, bbox_inches="tight")
-plt.close()
+    image = load_grayscale(args.input)
+    result = atmospheric_turbulence_degradation(
+        image,
+        k=args.k,
+    )
 
-print("Done. Output saved as Fig0525_result.png")
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Atmospheric Turbulence (k={args.k:g})",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

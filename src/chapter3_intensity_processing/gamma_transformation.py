@@ -1,32 +1,71 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-img = cv2.imread("Fig0308(a)(fractured_spine).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-gamma = 0.6
 
-img_norm = img.astype(np.float32) / 255.0
-result = np.power(img_norm, gamma)
-result = np.uint8(result * 255)
+def gamma_transform(image, gamma=0.6):
+    gamma = float(gamma)
 
-plt.figure(figsize=(10, 5))
+    if gamma <= 0:
+        raise ValueError("Gamma must be greater than zero.")
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 3.8(a) Original")
-plt.axis("off")
+    normalized = image.astype(np.float32) / 255.0
+    transformed = np.power(normalized, gamma)
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 3.8(b) Gamma = 0.6")
-plt.axis("off")
+    return np.clip(
+        transformed * 255.0,
+        0,
+        255,
+    ).astype(np.uint8)
 
-plt.tight_layout()
-plt.savefig("Fig0308_result.png", dpi=300, bbox_inches="tight")
-plt.close()
 
-print("Done. Output saved as Fig0308_result.png")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Apply power-law (gamma) transformation."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--gamma", type=float, default=0.6)
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter3",
+                "gamma_transformation.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
+
+    image = load_grayscale(args.input)
+    result = gamma_transform(
+        image,
+        gamma=args.gamma,
+    )
+
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Gamma Transformation (gamma={args.gamma:g})",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

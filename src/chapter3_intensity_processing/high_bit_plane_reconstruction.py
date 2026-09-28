@@ -1,27 +1,84 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
-import matplotlib.pyplot as plt
+import numpy as np
 
-img = cv2.imread("Fig0314(a)(100-dollars).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-result = img & 0b11000000
 
-plt.figure(figsize=(10, 5))
+def reconstruct_from_bits(image, bits=(8, 7)):
+    bits = tuple(int(bit) for bit in bits)
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Original")
-plt.axis("off")
+    if not bits:
+        raise ValueError("At least one bit plane must be selected.")
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 3.15(a) Planes 8 and 7")
-plt.axis("off")
+    if any(bit < 1 or bit > 8 for bit in bits):
+        raise ValueError("All bit numbers must be between 1 and 8.")
 
-plt.tight_layout()
-plt.savefig("Fig0315_result.png", dpi=300, bbox_inches="tight")
-plt.close()
+    mask = 0
 
-print("Done. Output saved as Fig0315_result.png")
+    for bit in bits:
+        mask |= 1 << (bit - 1)
+
+    return np.bitwise_and(
+        image,
+        np.uint8(mask),
+    )
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Reconstruct an image from selected bit planes."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument(
+        "--bits",
+        type=int,
+        nargs="+",
+        default=[8, 7],
+    )
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter3",
+                "high_bit_plane_reconstruction.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
+
+    image = load_grayscale(args.input)
+    result = reconstruct_from_bits(
+        image,
+        bits=args.bits,
+    )
+
+    bit_text = ", ".join(
+        str(bit) for bit in args.bits
+    )
+
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Reconstruction from Bits {bit_text}",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

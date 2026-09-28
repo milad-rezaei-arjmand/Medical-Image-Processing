@@ -1,131 +1,258 @@
-# Medical Image Processing:
+# Medical Image Processing
 
-## Enhancement, Filtering, Restoration, and Segmentation
+## Classical Enhancement, Frequency Filtering, Restoration, and Segmentation in Python
 
-## Overview
+This repository is an implementation-oriented study of classical digital image-processing methods with applications to biomedical and medical imaging.
 
-This repository presents an implementation-based study of classical
-medical image processing techniques using Python.
+It provides reusable command-line scripts for grayscale image enhancement, spatial/frequency processing, degradation modeling, threshold-based segmentation, and edge detection.
 
-The project focuses on fundamental digital image processing methods
-including image enhancement, spatial and frequency domain processing,
-image restoration, and image segmentation.
+The code is intended for education, experimentation, and portfolio demonstration. It is **not** a clinically validated imaging system.
 
-The implementations are based on concepts from the book:
+---
 
-**Digital Image Processing**\
-Rafael C. Gonzalez and Richard E. Woods
+## Implemented Methods
 
-------------------------------------------------------------------------
+### Chapter 3 — Intensity and Spatial Processing
 
-# Implemented Methods
+- Image negative
+- Logarithmic transformation
+- Gamma transformation
+- Bit-plane slicing
+- High-bit-plane reconstruction
+- Histogram equalization
+- Median filtering
 
-## Chapter 3 --- Image Enhancement and Spatial Processing
+### Chapter 4 — Frequency-Domain Processing
 
-Implemented techniques:
+- Fourier magnitude spectrum
+- Ideal low-pass filtering
+- Gaussian low-pass filtering
+- Ideal high-pass filtering
+- Butterworth high-pass filtering
+- Homomorphic filtering
 
--   Image Negative Transformation
--   Logarithmic Transformation
--   Gamma Transformation
--   Bit-Plane Slicing
--   High Bit-Plane Reconstruction
--   Histogram Equalization
--   Median Filtering
+### Chapter 5 — Degradation / Restoration Models
 
-## Chapter 4 --- Frequency Domain Processing
+- Atmospheric-turbulence degradation model
+- Linear motion-blur degradation model
 
-Implemented techniques:
+### Chapter 10 — Segmentation and Edges
 
--   Fourier Spectrum Analysis
--   Ideal Low-Pass Filtering
--   Gaussian Low-Pass Filtering
--   Ideal High-Pass Filtering
--   Butterworth High-Pass Filtering
--   Homomorphic Filtering
+- Fixed global thresholding
+- Iterative basic global thresholding
+- Otsu thresholding
+- Canny edge detection
 
-## Chapter 5 --- Image Restoration
+---
 
-Implemented techniques:
+## Key Reproducibility Improvement
 
--   Atmospheric Turbulence Degradation Model
--   Linear Motion Blur Degradation Model
+Older versions of the repository hard-coded textbook-companion filenames such as:
 
-## Chapter 10 --- Image Segmentation
+```text
+Fig0304(a)(breast_digital_Xray).tif
+Fig0462(a)(PET_image).tif
+Fig1026(a)(headCT-Vandy).tif
+```
 
-Implemented techniques:
+Those files were not included in the repository, so a fresh clone could not run the scripts directly.
 
--   Global Thresholding
--   Basic Global Thresholding
--   Otsu Thresholding
--   Canny Edge Detection
+The cleaned implementation removes hard-coded input filenames. Every script now accepts:
 
-------------------------------------------------------------------------
+```text
+--input
+```
 
-# Technologies
+and writes generated figures to `outputs/` by default.
 
-Programming Language:
+This allows the algorithms to run with any compatible grayscale image supplied by the user.
 
--   Python
+---
 
-Libraries:
+## Installation
 
--   OpenCV
--   NumPy
--   Matplotlib
-
-------------------------------------------------------------------------
-
-# Installation
-
-``` bash
+```bash
 git clone https://github.com/milad-rezaei-arjmand/Medical-Image-Processing.git
+cd Medical-Image-Processing
+
+python -m venv .venv
+source .venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-------------------------------------------------------------------------
+Dependencies:
 
-# Usage
+- NumPy
+- OpenCV
+- Matplotlib
 
-Each implementation can be executed independently.
+---
 
-Example:
+## Input Images
 
-``` bash
-python src/chapter10_segmentation/otsu_thresholding.py
+The repository does not redistribute the third-party images used by older versions of the scripts.
+
+Place your own input image locally, for example:
+
+```text
+data/my_image.png
 ```
 
-Generated outputs are saved inside the `results` directory.
+The `data/` directory is ignored by Git except for its README.
 
-------------------------------------------------------------------------
+See [`data/README.md`](data/README.md).
 
-# Results
+---
 
-The repository includes generated visualization results for:
+## Usage
 
--   Image enhancement
--   Frequency filtering
--   Restoration simulations
--   Segmentation methods
+### Image negative
 
-------------------------------------------------------------------------
+```bash
+python src/chapter3_intensity_processing/image_negative.py \
+  --input data/my_image.png
+```
 
-# Reference
+### Gamma transformation
 
-Gonzalez, R. C., & Woods, R. E.
+```bash
+python src/chapter3_intensity_processing/gamma_transformation.py \
+  --input data/my_image.png \
+  --gamma 0.6
+```
 
-**Digital Image Processing**
+### Gaussian low-pass filter
 
-Pearson Education.
+```bash
+python src/chapter4_frequency_processing/gaussian_lowpass_filter.py \
+  --input data/my_image.png \
+  --cutoff 10
+```
 
-------------------------------------------------------------------------
+### Homomorphic filtering
 
-# Author
+```bash
+python src/chapter4_frequency_processing/homomorphic_filtering.py \
+  --input data/my_image.png
+```
+
+### Otsu thresholding
+
+```bash
+python src/chapter10_segmentation/otsu_thresholding.py \
+  --input data/my_image.png
+```
+
+### Canny edge detection
+
+```bash
+python src/chapter10_segmentation/canny_edge_detection.py \
+  --input data/my_image.png \
+  --sigma 2 \
+  --kernel-size 13 \
+  --low-threshold 0.05 \
+  --high-threshold 0.15
+```
+
+Each script also supports `--help`.
+
+---
+
+## Output Behavior
+
+By default, generated comparison figures are written to:
+
+```text
+outputs/chapter3/
+outputs/chapter4/
+outputs/chapter5/
+outputs/chapter10/
+```
+
+You can override the destination:
+
+```bash
+python src/chapter10_segmentation/otsu_thresholding.py \
+  --input data/my_image.png \
+  --output outputs/custom_otsu.png
+```
+
+Generated outputs are ignored by Git.
+
+See [`results/README.md`](results/README.md) for the repository's result/provenance policy.
+
+---
+
+## Repository Structure
+
+```text
+Medical-Image-Processing/
+├── data/
+│   └── README.md
+├── results/
+│   └── README.md
+├── src/
+│   ├── common.py
+│   ├── smoke_test.py
+│   ├── chapter3_intensity_processing/
+│   ├── chapter4_frequency_processing/
+│   ├── chapter5_restoration/
+│   └── chapter10_segmentation/
+├── .gitignore
+├── LICENSE
+├── README.md
+└── requirements.txt
+```
+
+---
+
+## Smoke Test
+
+A synthetic-image smoke test validates the core implementations without requiring third-party image files:
+
+```bash
+python src/smoke_test.py
+```
+
+It checks that all 19 processing methods return finite 2-D outputs with the expected image shape.
+
+---
+
+## Technical Notes
+
+- Input is loaded as 8-bit grayscale.
+- Frequency-domain scripts use NumPy FFT operations.
+- Frequency-filter outputs are normalized to 8-bit only for visualization.
+- The homomorphic filter uses a log-domain illumination/reflectance model.
+- The degradation scripts simulate image formation effects; they are not inverse-restoration algorithms.
+- Canny thresholds are expressed as fractions of the 8-bit intensity range.
+- The methods are classical image-processing demonstrations rather than learned AI models.
+
+---
+
+## Reference
+
+The chapter organization and many of the classical methods are based on concepts commonly presented in:
+
+Rafael C. Gonzalez and Richard E. Woods, *Digital Image Processing*, Pearson.
+
+The book is used as a conceptual reference. Companion/source images from the book are not distributed in this cleaned repository.
+
+---
+
+## License
+
+Repository code and documentation are released under the MIT License.
+
+External input images, datasets, and other third-party materials are not covered by this repository license and remain subject to their own terms.
+
+---
+
+## Author
 
 **Milad Rezaei Arjmand**
 
-Research Interests:
+M.Sc. Student in Biomedical Engineering (Bioelectric)
 
--   Medical Artificial Intelligence
--   Biomedical Image Processing
--   Signal and Image Processing
--   Deep Learning
+Research interests include Medical AI, Biomedical Image Processing, Medical Imaging, and Biomedical Signal Processing.

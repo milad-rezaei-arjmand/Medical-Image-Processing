@@ -1,65 +1,111 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-img = cv2.imread("Fig0526(a)(original_DIP).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-a = 0.1
-b = 0.1
-T = 1
 
-img_float = img.astype(np.float32)
+def motion_blur_degradation(
+    image,
+    a=0.1,
+    b=0.1,
+    exposure=1.0,
+):
+    a = float(a)
+    b = float(b)
+    exposure = float(exposure)
 
-rows, cols = img.shape
-crow, ccol = rows // 2, cols // 2
+    if exposure <= 0:
+        raise ValueError(
+            "exposure must be greater than zero."
+        )
 
-u = np.arange(rows) - crow
-v = np.arange(cols) - ccol
-V, U = np.meshgrid(v, u)
+    image_float = image.astype(np.float32)
 
-uv = U * a + V * b
+    rows, cols = image.shape
+    center_row = rows // 2
+    center_col = cols // 2
 
-# Motion blur degradation function:
-# H(u,v) = T / [pi(ua+vb)] * sin[pi(ua+vb)] * exp[-j*pi(ua+vb)]
-H = np.zeros((rows, cols), dtype=np.complex64)
+    u = np.arange(rows) - center_row
+    v = np.arange(cols) - center_col
+    V, U = np.meshgrid(v, u)
 
-pi_uv = np.pi * uv
+    uv = U * a + V * b
 
-# جلوگیری از تقسیم بر صفر
-mask = pi_uv != 0
+    # np.sinc(x) = sin(pi*x)/(pi*x), including the x=0 limit.
+    transfer = (
+        exposure
+        * np.sinc(uv)
+        * np.exp(-1j * np.pi * uv)
+    )
 
-H[mask] = (T / pi_uv[mask]) * np.sin(pi_uv[mask]) * np.exp(-1j * pi_uv[mask])
-H[~mask] = T
+    spectrum = np.fft.fftshift(
+        np.fft.fft2(image_float)
+    )
+    degraded = spectrum * transfer
 
-F = np.fft.fft2(img_float)
-F_shift = np.fft.fftshift(F)
+    result = np.real(
+        np.fft.ifft2(
+            np.fft.ifftshift(degraded)
+        )
+    )
 
-G_shift = F_shift * H
+    return normalize_to_uint8(result)
 
-G = np.fft.ifftshift(G_shift)
-result = np.fft.ifft2(G)
-result = np.real(result)
 
-result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX)
-result = result.astype(np.uint8)
+def main():
+    parser = argparse.ArgumentParser(
+        description="Simulate linear motion-blur degradation."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--a", type=float, default=0.1)
+    parser.add_argument("--b", type=float, default=0.1)
+    parser.add_argument(
+        "--exposure",
+        type=float,
+        default=1.0,
+    )
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter5",
+                "motion_blur.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
 
-plt.figure(figsize=(10, 5))
+    image = load_grayscale(args.input)
+    result = motion_blur_degradation(
+        image,
+        a=args.a,
+        b=args.b,
+        exposure=args.exposure,
+    )
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 5.26(a) Original")
-plt.axis("off")
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        "Motion Blur Degradation",
+    )
+    print(f"Saved: {output}")
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 5.26(b) Motion Blur")
-plt.axis("off")
 
-plt.tight_layout()
-plt.savefig("Fig0526_result.png", dpi=300, bbox_inches="tight")
-plt.close()
-
-print("Done. Output saved as Fig0526_result.png")
+if __name__ == "__main__":
+    main()

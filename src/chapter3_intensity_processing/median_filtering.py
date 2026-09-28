@@ -1,27 +1,73 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
-import matplotlib.pyplot as plt
+import numpy as np
 
-img = cv2.imread("Fig0335(a)(ckt_board_saltpep_prob_pt05).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-result = cv2.medianBlur(img, 3)
 
-plt.figure(figsize=(10, 5))
+def median_filter(image, kernel_size=3):
+    kernel_size = int(kernel_size)
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 3.35(a) Original Noisy")
-plt.axis("off")
+    if kernel_size <= 1 or kernel_size % 2 == 0:
+        raise ValueError(
+            "kernel_size must be an odd integer greater than 1."
+        )
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 3.35(c) 3x3 Median")
-plt.axis("off")
+    return cv2.medianBlur(
+        image,
+        kernel_size,
+    )
 
-plt.tight_layout()
-plt.savefig("Fig0335_result.png", dpi=300, bbox_inches="tight")
-plt.close()
 
-print("Done. Output saved as Fig0335_result.png")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Apply median filtering."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument(
+        "--kernel-size",
+        type=int,
+        default=3,
+    )
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter3",
+                "median_filtering.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
+
+    image = load_grayscale(args.input)
+    result = median_filter(
+        image,
+        args.kernel_size,
+    )
+
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Median Filter ({args.kernel_size}x{args.kernel_size})",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

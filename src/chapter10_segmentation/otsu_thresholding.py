@@ -1,27 +1,63 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
-import matplotlib.pyplot as plt
+import numpy as np
 
-img = cv2.imread("Fig1039(a)(polymersomes).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-_, result = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-plt.figure(figsize=(10, 5))
+def otsu_threshold(image):
+    threshold, result = cv2.threshold(
+        image,
+        0,
+        255,
+        cv2.THRESH_BINARY + cv2.THRESH_OTSU,
+    )
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 10.39(a) Original")
-plt.axis("off")
+    return float(threshold), result
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 10.39(d) Otsu")
-plt.axis("off")
 
-plt.tight_layout()
-plt.savefig("Fig1039_result.png", dpi=300, bbox_inches="tight")
-plt.close()
+def main():
+    parser = argparse.ArgumentParser(
+        description="Apply Otsu automatic thresholding."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter10",
+                "otsu_thresholding.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
 
-print("Done. Output saved as Fig1039_result.png")
+    image = load_grayscale(args.input)
+    threshold, result = otsu_threshold(image)
+
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Otsu Threshold (T={threshold:.2f})",
+    )
+    print(f"Threshold: {threshold:.4f}")
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

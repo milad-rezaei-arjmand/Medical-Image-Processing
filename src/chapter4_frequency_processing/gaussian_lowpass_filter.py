@@ -1,50 +1,91 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-img = cv2.imread("Fig0448(a)(characters_test_pattern).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-D0 = 10
 
-rows, cols = img.shape
-crow, ccol = rows // 2, cols // 2
+def gaussian_lowpass_filter(image, cutoff=10.0):
+    cutoff = float(cutoff)
 
-u = np.arange(rows)
-v = np.arange(cols)
-V, U = np.meshgrid(v, u)
+    if cutoff <= 0:
+        raise ValueError("cutoff must be greater than zero.")
 
-D2 = (U - crow) ** 2 + (V - ccol) ** 2
-H = np.exp(-D2 / (2 * (D0 ** 2)))
+    rows, cols = image.shape
+    center_row = rows // 2
+    center_col = cols // 2
 
-f = np.fft.fft2(img)
-fshift = np.fft.fftshift(f)
+    u = np.arange(rows)
+    v = np.arange(cols)
+    V, U = np.meshgrid(v, u)
 
-gshift = fshift * H
+    distance_squared = (
+        (U - center_row) ** 2
+        + (V - center_col) ** 2
+    )
 
-g = np.fft.ifftshift(gshift)
-result = np.fft.ifft2(g)
-result = np.real(result)
+    transfer = np.exp(
+        -distance_squared / (2.0 * cutoff**2)
+    )
 
-result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX)
-result = result.astype(np.uint8)
+    spectrum = np.fft.fftshift(
+        np.fft.fft2(image)
+    )
+    filtered = spectrum * transfer
+    result = np.real(
+        np.fft.ifft2(
+            np.fft.ifftshift(filtered)
+        )
+    )
 
-plt.figure(figsize=(10, 5))
+    return normalize_to_uint8(result)
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 4.48(a) Original")
-plt.axis("off")
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 4.48(b) GLPF D0 = 10")
-plt.axis("off")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Apply a Gaussian low-pass frequency filter."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--cutoff", type=float, default=10.0)
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter4",
+                "gaussian_lowpass_filter.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
 
-plt.tight_layout()
-plt.savefig("Fig0448_result.png", dpi=300, bbox_inches="tight")
-plt.close()
+    image = load_grayscale(args.input)
+    result = gaussian_lowpass_filter(
+        image,
+        args.cutoff,
+    )
 
-print("Done. Output saved as Fig0448_result.png")
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Gaussian Low-Pass (D0={args.cutoff:g})",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

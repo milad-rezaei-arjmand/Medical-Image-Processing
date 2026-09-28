@@ -1,47 +1,130 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-img = cv2.imread("Fig1039(a)(polymersomes).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-# Basic Global Thresholding Algorithm
-T = img.mean()
 
-while True:
-    G1 = img[img > T]
-    G2 = img[img <= T]
+def basic_global_threshold(
+    image,
+    initial_threshold=None,
+    tolerance=0.5,
+    max_iterations=100,
+):
+    tolerance = float(tolerance)
+    max_iterations = int(max_iterations)
 
-    if len(G1) == 0 or len(G2) == 0:
-        break
+    if tolerance <= 0:
+        raise ValueError(
+            "tolerance must be greater than zero."
+        )
 
-    m1 = G1.mean()
-    m2 = G2.mean()
-    T_new = 0.5 * (m1 + m2)
+    if max_iterations <= 0:
+        raise ValueError(
+            "max_iterations must be greater than zero."
+        )
 
-    if abs(T - T_new) < 0.5:
-        break
+    threshold = (
+        float(np.mean(image))
+        if initial_threshold is None
+        else float(initial_threshold)
+    )
 
-    T = T_new
+    if not 0 <= threshold <= 255:
+        raise ValueError(
+            "initial_threshold must be in [0, 255]."
+        )
 
-_, result = cv2.threshold(img, T, 255, cv2.THRESH_BINARY)
+    for _ in range(max_iterations):
+        group_high = image[image > threshold]
+        group_low = image[image <= threshold]
 
-plt.figure(figsize=(10, 5))
+        if len(group_high) == 0 or len(group_low) == 0:
+            break
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 10.39(a) Original")
-plt.axis("off")
+        new_threshold = 0.5 * (
+            float(group_high.mean())
+            + float(group_low.mean())
+        )
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 10.39(c) Basic Global")
-plt.axis("off")
+        if abs(threshold - new_threshold) < tolerance:
+            threshold = new_threshold
+            break
 
-plt.tight_layout()
-plt.savefig("Fig1039_c_result.png", dpi=300, bbox_inches="tight")
-plt.close()
+        threshold = new_threshold
 
-print("Done. Output saved as Fig1039_c_result.png")
+    _, result = cv2.threshold(
+        image,
+        threshold,
+        255,
+        cv2.THRESH_BINARY,
+    )
+
+    return threshold, result
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Apply iterative basic global thresholding."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument(
+        "--initial-threshold",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
+        "--tolerance",
+        type=float,
+        default=0.5,
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=100,
+    )
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter10",
+                "basic_global_thresholding.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
+
+    image = load_grayscale(args.input)
+    threshold, result = basic_global_threshold(
+        image,
+        initial_threshold=args.initial_threshold,
+        tolerance=args.tolerance,
+        max_iterations=args.max_iterations,
+    )
+
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Basic Global Threshold (T={threshold:.2f})",
+    )
+    print(f"Threshold: {threshold:.4f}")
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

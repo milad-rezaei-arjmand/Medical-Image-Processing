@@ -1,31 +1,73 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-img = cv2.imread("Fig0314(a)(100-dollars).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-bit_number = 8
 
-result = ((img >> (bit_number - 1)) & 1) * 255
-result = result.astype(np.uint8)
+def extract_bit_plane(image, bit_number=8):
+    bit_number = int(bit_number)
 
-plt.figure(figsize=(10, 5))
+    if not 1 <= bit_number <= 8:
+        raise ValueError("bit_number must be between 1 and 8.")
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 3.14(a) Original")
-plt.axis("off")
+    plane = (
+        (image >> (bit_number - 1)) & 1
+    ) * 255
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title(f"Fig 3.14 Bit Plane {bit_number}")
-plt.axis("off")
+    return plane.astype(np.uint8)
 
-plt.tight_layout()
-plt.savefig("Fig0314_result.png", dpi=300, bbox_inches="tight")
-plt.close()
 
-print("Done. Output saved as Fig0314_result.png")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Extract one bit plane from an 8-bit grayscale image."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument(
+        "--bit",
+        type=int,
+        default=8,
+        choices=range(1, 9),
+    )
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter3",
+                "bit_plane_slicing.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
+
+    image = load_grayscale(args.input)
+    result = extract_bit_plane(
+        image,
+        args.bit,
+    )
+
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        f"Bit Plane {args.bit}",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()

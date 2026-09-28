@@ -1,35 +1,61 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
-img = cv2.imread("Fig0425(a)(translated_rectangle).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-f = np.fft.fft2(img)
-fshift = np.fft.fftshift(f)
 
-magnitude = np.abs(fshift)
-result = np.log1p(magnitude)
+def fourier_spectrum(image):
+    spectrum = np.fft.fftshift(
+        np.fft.fft2(image)
+    )
+    magnitude = np.log1p(
+        np.abs(spectrum)
+    )
+    return normalize_to_uint8(magnitude)
 
-result = cv2.normalize(result, None, 0, 255, cv2.NORM_MINMAX)
-result = result.astype(np.uint8)
 
-plt.figure(figsize=(10, 5))
+def main():
+    parser = argparse.ArgumentParser(
+        description="Visualize the centered Fourier magnitude spectrum."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter4",
+                "fourier_spectrum.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 4.25(a) Original")
-plt.axis("off")
+    image = load_grayscale(args.input)
+    result = fourier_spectrum(image)
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 4.25(b) Fourier Spectrum")
-plt.axis("off")
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        "Fourier Spectrum",
+    )
+    print(f"Saved: {output}")
 
-plt.tight_layout()
-plt.savefig("Fig0425_result.png", dpi=300, bbox_inches="tight")
-plt.close()
 
-print("Done. Output saved as Fig0425_result.png")
+if __name__ == "__main__":
+    main()

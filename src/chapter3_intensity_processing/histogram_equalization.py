@@ -1,27 +1,55 @@
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
 import cv2
-import matplotlib.pyplot as plt
+import numpy as np
 
-img = cv2.imread("Fig0320(1)(top_left).tif", cv2.IMREAD_GRAYSCALE)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-if img is None:
-    raise FileNotFoundError("Image not found. Check the file path.")
+from src.common import (
+    default_output_path,
+    load_grayscale,
+    normalize_to_uint8,
+    save_comparison,
+)
 
-result = cv2.equalizeHist(img)
 
-plt.figure(figsize=(10, 5))
+def histogram_equalization(image):
+    return cv2.equalizeHist(image)
 
-plt.subplot(1, 2, 1)
-plt.imshow(img, cmap="gray")
-plt.title("Fig 3.20 Original")
-plt.axis("off")
 
-plt.subplot(1, 2, 2)
-plt.imshow(result, cmap="gray")
-plt.title("Fig 3.20 Equalized")
-plt.axis("off")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Apply global histogram equalization."
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument(
+        "--output",
+        default=str(
+            default_output_path(
+                "chapter3",
+                "histogram_equalization.png",
+            )
+        ),
+    )
+    args = parser.parse_args()
 
-plt.tight_layout()
-plt.savefig("Fig0320_result.png", dpi=300, bbox_inches="tight")
-plt.close()
+    image = load_grayscale(args.input)
+    result = histogram_equalization(image)
 
-print("Done. Output saved as Fig0320_result.png")
+    output = save_comparison(
+        image,
+        result,
+        args.output,
+        "Histogram Equalization",
+    )
+    print(f"Saved: {output}")
+
+
+if __name__ == "__main__":
+    main()
